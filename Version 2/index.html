@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Achtung, die Kurve! — Version 2 (Power-Ups Edition)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- MAIN GAME ARENA -->
+    <main class="arena-wrapper" id="arenaWrapper">
+      <canvas id="trailCanvas"></canvas>
+      <canvas id="headCanvas"></canvas>
+
+      <!-- LOBBY / SETUP OVERLAY -->
+      <div class="overlay" id="lobbyOverlay">
+        <div class="lobby-card">
+          <div class="lobby-header">
+            <div>
+              <h1 class="game-title">
+                Achtung, <span>die Kurve!</span>
+                <span class="version-badge">V2 · POWER-UPS</span>
+              </h1>
+              <p class="subtitle">
+                🟢 <strong>Green orbs</strong> affect other players · 🔴 <strong>Red orbs</strong> affect only you · Press <strong>SPACE</strong> to start
+              </p>
+            </div>
+            <div class="header-buttons">
+              <button class="btn" id="togglePowerupsBtn" type="button">🎁 Choose Power-Ups</button>
+              <button class="btn" id="toggleTweaksBtn" type="button">⚙️ Tweak Rules</button>
+            </div>
+          </div>
+
+          <!-- PRESETS BAR (Always visible in Lobby for 1-click mode selection!) -->
+          <div class="presets-bar">
+            <span class="presets-label">Game Mode Presets:</span>
+            <button class="preset-chip highlight" data-preset="powerups" type="button">🎁 Power-Up Party</button>
+            <button class="preset-chip" data-preset="classic" type="button">Classic (No Power-Ups)</button>
+            <button class="preset-chip" data-preset="turbo" type="button">⚡ Turbo Chaos</button>
+            <button class="preset-chip" data-preset="needle" type="button">🪡 Thin Needle</button>
+            <button class="preset-chip" data-preset="torus" type="button">🌀 Wall Wraparound</button>
+            <button class="preset-chip" data-preset="tron" type="button">🧱 No Gaps</button>
+          </div>
+
+          <!-- EXPANDABLE POWER-UP SELECTOR PANEL -->
+          <section class="tweaks-section hidden" id="powerupsSection">
+            <div class="powerup-header-bar">
+              <label class="tweak-checkbox-row" style="font-weight: 700; font-size: 0.9rem;">
+                <input type="checkbox" id="chkPowerupsEnabled" checked />
+                Spawn Power-Ups in Arena
+              </label>
+
+              <div class="powerup-legend">
+                <span><i class="legend-dot green"></i>Green = Affects OTHERS</span>
+                <span><i class="legend-dot red"></i>Red = Affects ONLY YOU</span>
+              </div>
+
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button class="preset-chip" id="btnAllPowerups" type="button">Enable All</button>
+                <button class="preset-chip" id="btnGreenOnly" type="button">🟢 Only Green</button>
+                <button class="preset-chip" id="btnRedOnly" type="button">🔴 Only Red</button>
+                <button class="preset-chip" id="btnNoPowerups" type="button">Disable All</button>
+              </div>
+            </div>
+
+            <div class="tweaks-grid" style="margin-bottom: 4px;">
+              <div class="tweak-item">
+                <div class="tweak-label">
+                  <span>Power-Up Spawn Rate</span>
+                  <span class="tweak-val" id="valPowerFreq">1.0x</span>
+                </div>
+                <input type="range" id="inpPowerFreq" min="0.4" max="3.0" step="0.2" value="1.0" />
+              </div>
+              <div class="tweak-item">
+                <div class="tweak-label">
+                  <span>Max Orbs on Screen</span>
+                  <span class="tweak-val" id="valPowerMax">5</span>
+                </div>
+                <input type="range" id="inpPowerMax" min="1" max="12" step="1" value="5" />
+              </div>
+            </div>
+
+            <div class="powerup-grid" id="powerupGrid"></div>
+          </section>
+
+          <!-- EXPANDABLE PHYSICS & ARENA TWEAKS PANEL -->
+          <section class="tweaks-section hidden" id="tweaksSection">
+            <div class="tweaks-grid">
+              <div class="tweak-item">
+                <div class="tweak-label">
+                  <span>Move Speed</span>
+                  <span class="tweak-val" id="valMoveSpeed">2.35</span>
+                </div>
+                <input type="range" id="inpMoveSpeed" min="1.0" max="5.5" step="0.05" value="2.35" />
+              </div>
+
+              <div class="tweak-item">
+                <div class="tweak-label">
+                  <span>Turn Sharpness</span>
+                  <span class="tweak-val" id="valTurnSpeed">0.052</span>
+                </div>
+                <input type="range" id="inpTurnSpeed" min="0.02" max="0.12" step="0.002" value="0.052" />
+              </div>
+
+              <div class="tweak-item">
+                <div class="tweak-label">
+                  <span>Line Thickness</span>
+                  <span class="tweak-val" id="valLineWidth">4.5px</span>
+                </div>
+                <input type="range" id="inpLineWidth" min="1.5" max="12" step="0.5" value="4.5" />
+              </div>
+
+              <div class="tweak-item">
+                <div class="tweak-label">
+                  <span>Gap Frequency</span>
+                  <span class="tweak-val" id="valGapFreq">1.0x</span>
+                </div>
+                <input type="range" id="inpGapFreq" min="0.3" max="2.5" step="0.1" value="1.0" />
+              </div>
+
+              <div class="tweak-item">
+                <div class="tweak-label">
+                  <span>Gap Size</span>
+                  <span class="tweak-val" id="valGapSize">1.0x</span>
+                </div>
+                <input type="range" id="inpGapSize" min="0.4" max="2.5" step="0.1" value="1.0" />
+              </div>
+
+              <div class="tweak-item">
+                <div class="tweak-label">
+                  <span>Speed Ramp / sec</span>
+                  <span class="tweak-val" id="valSpeedRamp">Off</span>
+                </div>
+                <input type="range" id="inpSpeedRamp" min="0" max="0.15" step="0.01" value="0" />
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: center; padding-top: 4px;">
+              <label class="tweak-checkbox-row">
+                <input type="checkbox" id="chkGapsEnabled" checked />
+                Enable Trail Gaps
+              </label>
+              <label class="tweak-checkbox-row">
+                <input type="checkbox" id="chkWrapWalls" />
+                Wrap Around Walls
+              </label>
+              <label class="tweak-checkbox-row">
+                <input type="checkbox" id="chkSelfCollision" checked />
+                Self-Collision Kills
+              </label>
+              <label class="tweak-checkbox-row">
+                <input type="checkbox" id="chkAutoGoal" checked />
+                Auto Goal Score ((N-1)×10)
+              </label>
+              <div id="customGoalWrap" style="display: none; align-items: center; gap: 6px; font-size: 0.82rem;">
+                <span>Goal:</span>
+                <input type="number" id="inpCustomGoal" min="1" max="500" value="20" style="width: 60px; background: #111; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 3px 6px;" />
+              </div>
+            </div>
+          </section>
+
+          <!-- PLAYER ROSTER -->
+          <div class="players-list" id="playersList"></div>
+
+          <!-- FOOTER BUTTONS -->
+          <div class="lobby-actions">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="btn" id="addPlayerBtn" type="button">+ Add Player</button>
+              <button class="btn" id="addBotBtn" type="button">🤖 Add AI Bot</button>
+              <button class="btn" id="resetDefaultsBtn" type="button">↺ Reset Defaults</button>
+            </div>
+            <button class="btn btn-primary" id="startGameBtn" type="button">Start Match (SPACE)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FLOATING ROUND / PAUSE / WINNER BANNER -->
+      <div class="status-banner hidden" id="statusBanner">
+        <div class="banner-title" id="bannerTitle">Round Over</div>
+        <div class="banner-sub" id="bannerSub">Press <kbd>SPACE</kbd> to continue</div>
+      </div>
+    </main>
+
+    <!-- RIGHT SIDEBAR SCOREBOARD -->
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <div>
+          <div class="k-goal-box">
+            <span class="k-symbol">K</span>
+            <span class="k-target" id="goalScoreDisplay">10</span>
+          </div>
+          <div class="k-caption" style="margin-top: 6px;">Points to win match</div>
+        </div>
+
+        <div class="scoreboard-list" id="scoreboardList"></div>
+
+        <!-- RECENT POWER-UP FEED -->
+        <div>
+          <div class="k-caption" style="margin-bottom: 6px;">Active Power-Ups Feed</div>
+          <div class="powerup-feed" id="powerupFeed"></div>
+        </div>
+      </div>
+
+      <div class="sidebar-bottom">
+        <div class="sidebar-btns">
+          <button class="sidebar-btn" id="lobbyMenuBtn" type="button">☰ Setup / Power-Ups</button>
+          <button class="sidebar-btn" id="muteBtn" type="button">🔊 Sound: ON</button>
+        </div>
+        <div class="shortcuts-hint">
+          <div><kbd>SPACE</kbd> Start / Pause / Next</div>
+          <div><kbd>ESC</kbd> Return to Player Setup</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="sound.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
