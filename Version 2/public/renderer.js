@@ -1,5 +1,5 @@
 // ============================================================================
-// SERVER-AUTHORITATIVE RENDERER WITH LAYERED UI CANVAS & POWER-UPS (< 90 LINES)
+// SERVER-AUTHORITATIVE RENDERER WITH GHOST ALPHA & POWER-UPS (< 90 LINES)
 // ============================================================================
 const SLOT_COLORS = ["#ff3b30", "#32d74b", "#ff2d92", "#00d4ff", "#ff9f0a", "#a8a8b3"];
 
@@ -10,7 +10,6 @@ class GameRenderer {
     this.ctxUI = headCanvas.getContext("2d"); this.headCtx = this.ctxUI;
     this.cfg = cfg; this.prevPos = new Map();
     this.trailCanvas.style.pointerEvents = "none"; this.headCanvas.style.pointerEvents = "none";
-
     window.addEventListener("servercountdown", (e) => this.renderCountdown(e.detail));
     window.addEventListener("serverstart", () => this.ctxUI.clearRect(0, 0, this.width, this.height));
     window.addEventListener("servertick", (e) => { this.setVisible(true); this.renderServerTick(e.detail); });
@@ -23,8 +22,7 @@ class GameRenderer {
   resize(w, h) {
     this.width = w; this.height = h;
     this.trailCanvas.width = w; this.trailCanvas.height = h;
-    this.headCanvas.width = w; this.headCanvas.height = h;
-    this.clear();
+    this.headCanvas.width = w; this.headCanvas.height = h; this.clear();
   }
   clear() {
     this.prevPos.clear();
@@ -58,10 +56,12 @@ class GameRenderer {
     ctx.fillText("Press SPACE for next round", this.width / 2, this.height / 2 + 24);
     ctx.restore();
   }
-  drawSegment(x1, y1, x2, y2, color, lineWidth) {
+  drawSegment(x1, y1, x2, y2, color, lineWidth, isGhost) {
     const ctx = this.trailCtx;
+    ctx.globalAlpha = isGhost ? 0.3 : 1.0;
     ctx.strokeStyle = color; ctx.lineWidth = lineWidth; ctx.lineCap = "round";
     ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.globalAlpha = 1.0;
   }
   renderServerTick(payload) {
     const players = Array.isArray(payload) ? payload : (payload && payload.players) || [];
@@ -79,7 +79,7 @@ class GameRenderer {
     for (let i = 0; i < players.length; i++) {
       const p = players[i], color = p.color || SLOT_COLORS[p.id % SLOT_COLORS.length] || "#ff3b30";
       const prev = this.prevPos.get(p.id), lw = p.lineWidth || this.cfg.lineWidth || 4.5;
-      if (prev && p.alive && !p.gap && Math.hypot(p.x - prev.x, p.y - prev.y) < 40) this.drawSegment(prev.x, prev.y, p.x, p.y, color, lw);
+      if (prev && p.alive && !p.gap && Math.hypot(p.x - prev.x, p.y - prev.y) < 40) this.drawSegment(prev.x, prev.y, p.x, p.y, color, lw, p.isGhost);
       this.prevPos.set(p.id, { x: p.x, y: p.y });
       ctxUI.beginPath(); ctxUI.arc(p.x, p.y, Math.max(2.4, lw * 0.55), 0, Math.PI * 2);
       ctxUI.fillStyle = p.alive ? "#ffe650" : "#ffffff"; ctxUI.fill();
