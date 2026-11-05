@@ -1,5 +1,5 @@
 // ============================================================================
-// SERVER-AUTHORITATIVE RENDERER WITH GHOST ALPHA & POWER-UPS (< 90 LINES)
+// SERVER-AUTHORITATIVE RENDERER WITH GHOST & WRAP FEEDBACK (< 90 LINES)
 // ============================================================================
 const SLOT_COLORS = ["#ff3b30", "#32d74b", "#ff2d92", "#00d4ff", "#ff9f0a", "#a8a8b3"];
 
@@ -30,8 +30,7 @@ class GameRenderer {
     this.ctxUI.clearRect(0, 0, this.width, this.height);
   }
   renderCountdown(payload) {
-    const count = typeof payload === "object" ? payload.count : payload;
-    const players = (payload && payload.players) || [];
+    const count = typeof payload === "object" ? payload.count : payload, players = (payload && payload.players) || [];
     const lobby = document.getElementById("lobbyOverlay");
     if (lobby) lobby.classList.add("hidden");
     this.setVisible(true); this.clear();
@@ -58,16 +57,17 @@ class GameRenderer {
   }
   drawSegment(x1, y1, x2, y2, color, lineWidth, isGhost) {
     const ctx = this.trailCtx;
-    ctx.globalAlpha = isGhost ? 0.3 : 1.0;
-    ctx.strokeStyle = color; ctx.lineWidth = lineWidth; ctx.lineCap = "round";
-    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-    ctx.globalAlpha = 1.0;
+    ctx.globalAlpha = isGhost ? 0.3 : 1.0; ctx.strokeStyle = color; ctx.lineWidth = lineWidth; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.globalAlpha = 1.0;
   }
   renderServerTick(payload) {
     const players = Array.isArray(payload) ? payload : (payload && payload.players) || [];
     const powerUps = (!Array.isArray(payload) && payload && payload.activePowerUps) || [];
-    const ctxUI = this.ctxUI;
+    const ctxUI = this.ctxUI, flash = Math.floor(Date.now() / 150) % 2 === 0;
     ctxUI.clearRect(0, 0, this.width, this.height);
+    if (players.some((p) => p.alive && p.isWrap)) {
+      ctxUI.lineWidth = 10; ctxUI.strokeStyle = flash ? "yellow" : "transparent"; ctxUI.strokeRect(0, 0, this.width, this.height);
+    }
     for (let i = 0; i < powerUps.length; i++) {
       const pu = powerUps[i], isGreen = pu.type === "green";
       ctxUI.beginPath(); ctxUI.arc(pu.x, pu.y, pu.radius || 15, 0, Math.PI * 2);
@@ -82,7 +82,7 @@ class GameRenderer {
       if (prev && p.alive && !p.gap && Math.hypot(p.x - prev.x, p.y - prev.y) < 40) this.drawSegment(prev.x, prev.y, p.x, p.y, color, lw, p.isGhost);
       this.prevPos.set(p.id, { x: p.x, y: p.y });
       ctxUI.beginPath(); ctxUI.arc(p.x, p.y, Math.max(2.4, lw * 0.55), 0, Math.PI * 2);
-      ctxUI.fillStyle = p.alive ? "#ffe650" : "#ffffff"; ctxUI.fill();
+      ctxUI.fillStyle = p.isGhost && flash ? "white" : p.alive ? "#ffe650" : "#ffffff"; ctxUI.fill();
     }
   }
 }
