@@ -1,5 +1,5 @@
 // ============================================================================
-// SERVER: REAL-TIME LOBBY SYNC, SETTINGS SYNC & CLEAN SLATE (< 90 LINES)
+// SERVER: LANDING PAGE, LOCAL/MULTIPLAYER STATIC ROUTING & WS SYNC (< 90 LINES)
 // ============================================================================
 const http = require("http");
 const path = require("path");
@@ -12,8 +12,8 @@ const PORT = process.env.PORT || 8080;
 const ROOT_DIR = path.join(__dirname, "..");
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
 const app = express();
-app.use("/public", express.static(PUBLIC_DIR));
 app.use(express.static(PUBLIC_DIR));
+app.use("/public", express.static(PUBLIC_DIR));
 app.use(express.static(ROOT_DIR));
 
 const server = http.createServer(app);
@@ -32,7 +32,6 @@ function broadcastRosterSync() {
 function clearCountdown() {
   if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
 }
-
 function startSynchronizedCountdown() {
   const roster = roomManager.getRoster();
   if (roster.length === 0 || countdownTimer || gameEngine.intervalId) return;

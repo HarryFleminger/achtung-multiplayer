@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Achtung, die Kurve! — Select Game Mode</title>
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, #12131c 0%, #050507 100%);
+      color: #f2f2f7;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .landing-card {
+      background: rgba(18, 19, 28, 0.94);
+      border: 2px solid #2c2e3e;
+      border-radius: 14px;
+      padding: 42px 48px;
+      max-width: 560px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75);
+    }
+    .landing-sub {
+      color: #9a9aa6;
+      font-size: 0.96rem;
+      margin: 12px 0 32px;
+      line-height: 1.5;
+    }
+    .mode-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .mode-link {
+      text-decoration: none;
+      display: block;
+    }
+    .mode-btn {
+      width: 100%;
+      padding: 18px 24px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .mode-btn:hover {
+      transform: translateY(-2px);
+    }
+    .mode-local {
+      background: #1c1e2b;
+      color: #ffe650;
+      border: 2px solid #ffe650;
+      box-shadow: 0 0 20px rgba(255, 230, 80, 0.15);
+    }
+    .mode-multi {
+      background: linear-gradient(135deg, #ff3b30, #ff2d92);
+      color: #ffffff;
+      border: 2px solid #ff5e57;
+      box-shadow: 0 0 24px rgba(255, 59, 48, 0.35);
+    }
+  </style>
+</head>
+<body>
+  <div class="landing-card">
+    <h1 class="game-title" style="justify-content:center;font-size:2.2rem;">
+      Achtung, <span>die Kurve!</span>
+      <span class="version-badge">V2 · ARCADE</span>
+    </h1>
+    <p class="landing-sub">
+      Classic retro curve fever with stacking 🟢 Green &amp; 🔴 Red power-ups. Choose how you want to play:
+    </p>
+    <div class="mode-actions">
+      <a class="mode-link" href="/local.html">
+        <button class="mode-btn mode-local" type="button">⌨️ Play Locally (Single Keyboard)</button>
+      </a>
+      <a class="mode-link" href="/multiplayer.html">
+        <button class="mode-btn mode-multi" type="button">🌐 Play Online Multiplayer</button>
+      </a>
+    </div>
+  </div>
+</body>
+</html>
