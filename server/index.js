@@ -1,5 +1,5 @@
 // ============================================================================
-// SERVER: REAL-TIME LOBBY SYNC, SLOT LOCKING & GAME LOOP (< 90 LINES)
+// SERVER: REAL-TIME LOBBY SYNC, SLOT LOCKING & POWER-UP TICKS (< 90 LINES)
 // ============================================================================
 const http = require("http");
 const path = require("path");
@@ -46,7 +46,7 @@ function startSynchronizedCountdown() {
     clearCountdown();
     broadcast({ type: "start" });
     gameEngine.startLoop(roster, (res) => {
-      broadcast({ type: "tick", players: res.players });
+      broadcast({ type: "tick", players: res.players, activePowerUps: res.activePowerUps });
       if (res.roundOver) {
         const scores = {};
         roomManager.getRoster().forEach((p) => {

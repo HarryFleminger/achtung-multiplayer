@@ -1,5 +1,5 @@
 // ============================================================================
-// CLIENT NETWORK WITH SLOT CLAIMING & ROSTER SYNC (< 90 LINES)
+// CLIENT NETWORK WITH SLOT CLAIMING, ROSTER SYNC & POWER-UP TICKS (< 90 LINES)
 // ============================================================================
 class NetworkClient {
   constructor() {
@@ -50,8 +50,8 @@ class NetworkClient {
         window.dispatchEvent(new CustomEvent("serverroundend", { detail: msg }));
       } else if (msg.type === "tick") {
         this.latestTick = msg.players;
-        window.latestServerTick = msg.players;
-        window.dispatchEvent(new CustomEvent("servertick", { detail: msg.players }));
+        window.latestServerTick = msg;
+        window.dispatchEvent(new CustomEvent("servertick", { detail: msg }));
       }
       const handler = this.listeners.get(msg.type);
       if (handler) handler(msg);
