@@ -1,5 +1,5 @@
 // ============================================================================
-// SERVER: REAL-TIME LOBBY SYNC, SLOT LOCKING & POWER-UP TICKS (< 90 LINES)
+// SERVER: REAL-TIME LOBBY SYNC, SETTINGS SYNC & CLEAN SLATE (< 90 LINES)
 // ============================================================================
 const http = require("http");
 const path = require("path");
@@ -36,17 +36,14 @@ function clearCountdown() {
 function startSynchronizedCountdown() {
   const roster = roomManager.getRoster();
   if (roster.length === 0 || countdownTimer || gameEngine.intervalId) return;
+  gameEngine.setSettings(roomManager.gameSettings);
   let count = 3;
   broadcast({ type: "countdown", count, players: gameEngine.initMatch(roster) });
   countdownTimer = setInterval(() => {
-    if (--count > 0) {
-      broadcast({ type: "countdown", count, players: gameEngine.getSnapshot() });
-      return;
-    }
-    clearCountdown();
-    broadcast({ type: "start" });
+    if (--count > 0) { broadcast({ type: "countdown", count, players: gameEngine.getSnapshot() }); return; }
+    clearCountdown(); broadcast({ type: "start" });
     gameEngine.startLoop(roster, (res) => {
-      broadcast({ type: "tick", players: res.players, activePowerUps: res.activePowerUps });
+      broadcast({ type: "tick", players: res.players, activePowerUps: res.activePowerUps, clearBoard: Boolean(res.clearBoard) });
       if (res.roundOver) {
         const scores = {};
         roomManager.getRoster().forEach((p) => {
@@ -62,6 +59,7 @@ function startSynchronizedCountdown() {
 wss.on("connection", (ws) => {
   const assignedPlayer = roomManager.addPlayer(ws);
   ws.send(JSON.stringify({ type: "assigned", clientId: assignedPlayer.clientId, player: assignedPlayer }));
+  ws.send(JSON.stringify({ type: "settingsSync", settings: roomManager.gameSettings }));
   broadcastRosterSync();
   ws.on("message", (raw) => {
     let msg;
@@ -69,6 +67,9 @@ wss.on("connection", (ws) => {
     if (msg.type === "claimSlot" && msg.slot && roomManager.claimSlot(ws, msg.slot)) {
       ws.send(JSON.stringify({ type: "assigned", clientId: assignedPlayer.clientId, player: assignedPlayer }));
       broadcastRosterSync();
+    } else if (msg.type === "updateSetting" && msg.key) {
+      const settings = roomManager.updateSetting(msg.key, msg.value);
+      gameEngine.setSettings(settings); broadcast({ type: "settingsSync", settings });
     } else if (msg.type === "requestStart" || msg.type === "start") {
       startSynchronizedCountdown();
     } else if (msg.type === "abortMatch") {

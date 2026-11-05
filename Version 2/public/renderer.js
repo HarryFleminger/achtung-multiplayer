@@ -1,5 +1,5 @@
 // ============================================================================
-// SERVER-AUTHORITATIVE RENDERER WITH GHOST & WRAP FEEDBACK (< 90 LINES)
+// SERVER-AUTHORITATIVE RENDERER WITH CLEAN SLATE & VISUAL CUES (< 90 LINES)
 // ============================================================================
 const SLOT_COLORS = ["#ff3b30", "#32d74b", "#ff2d92", "#00d4ff", "#ff9f0a", "#a8a8b3"];
 
@@ -26,8 +26,7 @@ class GameRenderer {
   }
   clear() {
     this.prevPos.clear();
-    this.trailCtx.clearRect(0, 0, this.width, this.height);
-    this.ctxUI.clearRect(0, 0, this.width, this.height);
+    this.trailCtx.clearRect(0, 0, this.width, this.height); this.ctxUI.clearRect(0, 0, this.width, this.height);
   }
   renderCountdown(payload) {
     const count = typeof payload === "object" ? payload.count : payload, players = (payload && payload.players) || [];
@@ -45,15 +44,13 @@ class GameRenderer {
     ctx.fillText(String(count), this.width / 2, this.height / 2); ctx.restore();
   }
   renderRoundEnd() {
-    const ctx = this.ctxUI;
-    ctx.save();
+    const ctx = this.ctxUI; ctx.save();
     ctx.fillStyle = "rgba(8, 8, 12, 0.72)"; ctx.fillRect(this.width / 2 - 190, this.height / 2 - 55, 380, 110);
     ctx.strokeStyle = "#ffe650"; ctx.lineWidth = 2; ctx.strokeRect(this.width / 2 - 190, this.height / 2 - 55, 380, 110);
     ctx.font = "800 34px sans-serif"; ctx.fillStyle = "#ffe650"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText("Round Over", this.width / 2, this.height / 2 - 14);
     ctx.font = "600 16px sans-serif"; ctx.fillStyle = "#f4f4f8";
-    ctx.fillText("Press SPACE for next round", this.width / 2, this.height / 2 + 24);
-    ctx.restore();
+    ctx.fillText("Press SPACE for next round", this.width / 2, this.height / 2 + 24); ctx.restore();
   }
   drawSegment(x1, y1, x2, y2, color, lineWidth, isGhost) {
     const ctx = this.trailCtx;
@@ -61,13 +58,12 @@ class GameRenderer {
     ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.globalAlpha = 1.0;
   }
   renderServerTick(payload) {
+    if (payload && payload.clearBoard) this.trailCtx.clearRect(0, 0, this.trailCanvas.width, this.trailCanvas.height);
     const players = Array.isArray(payload) ? payload : (payload && payload.players) || [];
     const powerUps = (!Array.isArray(payload) && payload && payload.activePowerUps) || [];
     const ctxUI = this.ctxUI, flash = Math.floor(Date.now() / 150) % 2 === 0;
     ctxUI.clearRect(0, 0, this.width, this.height);
-    if (players.some((p) => p.alive && p.isWrap)) {
-      ctxUI.lineWidth = 10; ctxUI.strokeStyle = flash ? "yellow" : "transparent"; ctxUI.strokeRect(0, 0, this.width, this.height);
-    }
+    if (players.some((p) => p.alive && p.isWrap)) { ctxUI.lineWidth = 10; ctxUI.strokeStyle = flash ? "yellow" : "transparent"; ctxUI.strokeRect(0, 0, this.width, this.height); }
     for (let i = 0; i < powerUps.length; i++) {
       const pu = powerUps[i], isGreen = pu.type === "green";
       ctxUI.beginPath(); ctxUI.arc(pu.x, pu.y, pu.radius || 15, 0, Math.PI * 2);
@@ -78,11 +74,14 @@ class GameRenderer {
     }
     for (let i = 0; i < players.length; i++) {
       const p = players[i], color = p.color || SLOT_COLORS[p.id % SLOT_COLORS.length] || "#ff3b30";
-      const prev = this.prevPos.get(p.id), lw = p.lineWidth || this.cfg.lineWidth || 4.5;
+      const prev = this.prevPos.get(p.id), lw = p.lineWidth || this.cfg.lineWidth || 4.5, r = Math.max(2.4, lw * 0.55);
       if (prev && p.alive && !p.gap && Math.hypot(p.x - prev.x, p.y - prev.y) < 40) this.drawSegment(prev.x, prev.y, p.x, p.y, color, lw, p.isGhost);
       this.prevPos.set(p.id, { x: p.x, y: p.y });
-      ctxUI.beginPath(); ctxUI.arc(p.x, p.y, Math.max(2.4, lw * 0.55), 0, Math.PI * 2);
-      ctxUI.fillStyle = p.isGhost && flash ? "white" : p.alive ? "#ffe650" : "#ffffff"; ctxUI.fill();
+      ctxUI.fillStyle = p.isGhost && flash ? "white" : p.alive ? "#ffe650" : "#ffffff";
+      if (p.isRightAngle) ctxUI.fillRect(p.x - r, p.y - r, r * 2, r * 2);
+      else { ctxUI.beginPath(); ctxUI.arc(p.x, p.y, r, 0, Math.PI * 2); ctxUI.fill(); }
+      if (p.isReverse) { ctxUI.beginPath(); ctxUI.arc(p.x, p.y, r + 4, 0, Math.PI * 2); ctxUI.lineWidth = 1.8; ctxUI.strokeStyle = "red"; ctxUI.stroke(); }
+      if (p.isWobble) { ctxUI.font = "bold 12px sans-serif"; ctxUI.fillStyle = "white"; ctxUI.fillText("?", p.x + 5, p.y - 8); }
     }
   }
 }
