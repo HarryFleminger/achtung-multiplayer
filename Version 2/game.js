@@ -1,5 +1,5 @@
 // ============================================================================
-// CLIENT UI & INTERACTIVE LOBBY CONTROLLER (< 90 LINES)
+// CLIENT UI: REAL-TIME LOBBY SYNC & COLOR SLOT LOCKING (< 90 LINES)
 // ============================================================================
 (function () {
   const cfg = window.ACHTUNG_CONFIG;
@@ -11,7 +11,9 @@
   renderer.resize(800, 600);
   renderer.setVisible(false);
 
-  let players = JSON.parse(JSON.stringify(cfg.defaultPlayers));
+  const SLOT_NAMES = ["Fred", "Greenlee", "Pinkney", "Bluebell", "Willem", "Greydon"];
+  let players = JSON.parse(JSON.stringify(cfg.defaultPlayers)).map((p, i) => ({ ...p, slotName: SLOT_NAMES[i] || p.name }));
+  let slotOwners = {};
   let bindTarget = null;
 
   function renderRosterUI() {
@@ -21,25 +23,31 @@
     if (list) {
       list.innerHTML = "";
       players.forEach((p, idx) => {
+        const ownerId = slotOwners[p.slotName] ?? null;
+        const isMine = Boolean(net.clientId && ownerId === net.clientId);
+        const isOther = Boolean(ownerId && ownerId !== net.clientId);
+        if (Object.keys(slotOwners).length > 0) p.active = Boolean(ownerId);
+
         const row = document.createElement("div");
         row.className = "player-row" + (p.active ? " active" : "");
+        row.dataset.slot = p.slotName;
+        row.style.opacity = isOther ? "0.45" : "1";
         const bL = bindTarget && bindTarget.idx === idx && bindTarget.side === "left";
         const bR = bindTarget && bindTarget.idx === idx && bindTarget.side === "right";
-        row.innerHTML = `
-          <button type="button" class="player-toggle">${p.active ? "✓" : ""}</button>
-          <input type="color" class="color-swatch-input" value="${p.color}" />
-          <input type="text" class="player-name-input" value="${p.name}" style="color:${p.color}" maxlength="16" />
-          <button type="button" class="key-btn${bL ? " listening" : ""}">${bL ? "Press key..." : "⟲ " + p.leftLabel}</button>
-          <button type="button" class="key-btn${bR ? " listening" : ""}">${bR ? "Press key..." : p.rightLabel + " ⟳"}</button>
-          <button type="button" class="bot-btn${p.isBot ? " is-bot" : ""}">${p.isBot ? "🤖 Bot" : "👤 Human"}</button>
-        `;
+        const dis = isOther ? "disabled" : "";
+        row.innerHTML = `<button type="button" class="player-toggle" ${dis}>${p.active ? "✓" : ""}</button><input type="color" class="color-swatch-input" value="${p.color}" ${dis} /><input type="text" class="player-name-input" value="${p.name}" style="color:${p.color}" maxlength="16" ${dis} /><button type="button" class="key-btn${bL ? " listening" : ""}" ${dis}>${bL ? "Press key..." : "⟲ " + p.leftLabel}</button><button type="button" class="key-btn${bR ? " listening" : ""}" ${dis}>${bR ? "Press key..." : p.rightLabel + " ⟳"}</button><button type="button" class="bot-btn${p.isBot ? " is-bot" : ""}" ${dis}>${isMine ? "👤 You" : isOther ? "🔒 Taken" : p.isBot ? "🤖 Bot" : "👤 Human"}</button>`;
         const [tog, col, nam, lBtn, rBtn, bot] = row.children;
-        tog.onclick = () => { p.active = !p.active; if (sfx) sfx.playClick(); renderRosterUI(); };
+        tog.onclick = () => {
+          if (isOther) return;
+          if (sfx) sfx.playClick();
+          if (net.connected) net.send({ type: "claimSlot", slot: p.slotName });
+          else { p.active = !p.active; renderRosterUI(); }
+        };
         col.oninput = (e) => { p.color = e.target.value; nam.style.color = p.color; renderRosterUI(); };
         nam.oninput = (e) => { p.name = e.target.value; };
-        lBtn.onclick = () => { p.active = true; bindTarget = { idx, side: "left" }; renderRosterUI(); };
-        rBtn.onclick = () => { p.active = true; bindTarget = { idx, side: "right" }; renderRosterUI(); };
-        bot.onclick = () => { p.isBot = !p.isBot; p.active = true; if (sfx) sfx.playClick(); renderRosterUI(); };
+        lBtn.onclick = () => { if (!isOther) { bindTarget = { idx, side: "left" }; renderRosterUI(); } };
+        rBtn.onclick = () => { if (!isOther) { bindTarget = { idx, side: "right" }; renderRosterUI(); } };
+        bot.onclick = () => { if (!isOther) { p.isBot = !p.isBot; if (sfx) sfx.playClick(); renderRosterUI(); } };
         list.appendChild(row);
       });
     }
@@ -66,24 +74,18 @@
     renderRosterUI();
   });
 
-  if ($("addPlayerBtn")) $("addPlayerBtn").onclick = () => { players.push({ id: players.length, name: "Player " + (players.length + 1), color: "#bf5af2", active: true, isBot: false, leftKey: "KeyQ", leftLabel: "Q", rightKey: "KeyW", rightLabel: "W", score: 0 }); renderRosterUI(); };
-  if ($("addBotBtn")) $("addBotBtn").onclick = () => { const inact = players.find((p) => !p.active); if (inact) { inact.active = true; inact.isBot = true; } renderRosterUI(); };
   if ($("startGameBtn")) $("startGameBtn").onclick = () => net.send({ type: "requestStart" });
   if ($("lobbyMenuBtn")) $("lobbyMenuBtn").onclick = () => net.send({ type: "abortMatch" });
   if ($("muteBtn")) $("muteBtn").onclick = () => { const m = sfx.toggleMute(); $("muteBtn").textContent = m ? "🔇 Sound: OFF" : "🔊 Sound: ON"; };
 
+  net.on("assigned", () => renderRosterUI());
+  net.on("rosterSync", (msg) => { slotOwners = msg.slots || {}; renderRosterUI(); });
   net.on("countdown", () => { if (sfx) sfx.playClick(); });
   net.on("start", () => { if (sfx) sfx.playRoundStart(); });
   net.on("roundEnd", (msg) => {
-    if (msg.scores) {
-      players.forEach((p) => {
-        if (typeof msg.scores[p.id] === "number") p.score = msg.scores[p.id];
-      });
-      renderRosterUI();
-    }
+    if (msg.scores) { players.forEach((p) => { if (typeof msg.scores[p.id] === "number") p.score = msg.scores[p.id]; }); renderRosterUI(); }
     if (sfx) sfx.playRoundEnd();
   });
   net.on("returnToLobby", () => { renderer.clear(); renderer.setVisible(false); $("lobbyOverlay").classList.remove("hidden"); if (sfx) sfx.playClick(); });
-
   renderRosterUI();
 })();
