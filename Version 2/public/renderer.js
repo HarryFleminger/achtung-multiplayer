@@ -30,8 +30,9 @@ class GameRenderer {
   }
   renderCountdown(payload) {
     const count = typeof payload === "object" ? payload.count : payload, players = (payload && payload.players) || [];
-    const lobby = document.getElementById("lobbyOverlay");
+    const lobby = document.getElementById("lobbyOverlay"), pop = document.getElementById("win-popup");
     if (lobby) lobby.classList.add("hidden");
+    if (pop) pop.style.display = "none";
     this.setVisible(true); this.clear();
     const ctx = this.ctxUI;
     for (let i = 0; i < players.length; i++) {

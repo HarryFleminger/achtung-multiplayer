@@ -1,5 +1,5 @@
 // ============================================================================
-// SERVER: LANDING PAGE, LOCAL/MULTIPLAYER STATIC ROUTING & WS SYNC (< 90 LINES)
+// SERVER: SCORE RESET, 10-POINT WIN CONDITION & WS SYNC (< 90 LINES)
 // ============================================================================
 const http = require("http");
 const path = require("path");
@@ -9,15 +9,10 @@ const roomManager = require("./roomManager");
 const gameEngine = require("./gameEngine");
 
 const PORT = process.env.PORT || 8080;
-const ROOT_DIR = path.join(__dirname, "..", "Version 2");
-const PUBLIC_DIR = path.join(ROOT_DIR, "public");
+const ROOT_DIR = path.join(__dirname, "..", "Version 2"), PUBLIC_DIR = path.join(ROOT_DIR, "public");
 const app = express();
-app.use(express.static(PUBLIC_DIR));
-app.use("/public", express.static(PUBLIC_DIR));
-app.use(express.static(ROOT_DIR));
-
-const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
+app.use(express.static(PUBLIC_DIR)); app.use("/public", express.static(PUBLIC_DIR)); app.use(express.static(ROOT_DIR));
+const server = http.createServer(app), wss = new WebSocketServer({ server });
 let countdownTimer = null;
 
 function broadcast(obj) {
@@ -29,9 +24,8 @@ function broadcastRosterSync() {
   broadcast({ type: "rosterSync", slots: roomManager.getSlotMap(), players });
   broadcast({ type: "roster", players });
 }
-function clearCountdown() {
-  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
-}
+function clearCountdown() { if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; } }
+
 function startSynchronizedCountdown() {
   const roster = roomManager.getRoster();
   if (roster.length === 0 || countdownTimer || gameEngine.intervalId) return;
@@ -44,12 +38,13 @@ function startSynchronizedCountdown() {
     gameEngine.startLoop(roster, (res) => {
       broadcast({ type: "tick", players: res.players, activePowerUps: res.activePowerUps, clearBoard: Boolean(res.clearBoard) });
       if (res.roundOver) {
-        const scores = {};
+        const scores = {}; let matchWinner = null;
         roomManager.getRoster().forEach((p) => {
           if (p.id === res.winnerId) p.score = (p.score || 0) + 1;
           scores[p.id] = p.score || 0;
+          if (scores[p.id] >= 10) matchWinner = p.id;
         });
-        broadcast({ type: "roundEnd", winnerId: res.winnerId, scores, players: roomManager.getRoster() });
+        broadcast({ type: "roundEnd", winnerId: res.winnerId, matchWinner, scores, players: roomManager.getRoster() });
       }
     });
   }, 1000);
@@ -61,14 +56,17 @@ wss.on("connection", (ws) => {
   ws.send(JSON.stringify({ type: "settingsSync", settings: roomManager.gameSettings }));
   broadcastRosterSync();
   ws.on("message", (raw) => {
-    let msg;
-    try { msg = JSON.parse(raw); } catch (e) { return; }
+    let msg; try { msg = JSON.parse(raw); } catch (e) { return; }
     if (msg.type === "claimSlot" && msg.slot && roomManager.claimSlot(ws, msg.slot)) {
       ws.send(JSON.stringify({ type: "assigned", clientId: assignedPlayer.clientId, player: assignedPlayer }));
       broadcastRosterSync();
     } else if (msg.type === "updateSetting" && msg.key) {
       const settings = roomManager.updateSetting(msg.key, msg.value);
       gameEngine.setSettings(settings); broadcast({ type: "settingsSync", settings });
+    } else if (msg.type === "resetScores") {
+      const scores = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      roomManager.getRoster().forEach((p) => { p.score = 0; scores[p.id] = 0; });
+      broadcast({ type: "scoreSync", scores, players: roomManager.getRoster() });
     } else if (msg.type === "requestStart" || msg.type === "start") {
       startSynchronizedCountdown();
     } else if (msg.type === "abortMatch") {

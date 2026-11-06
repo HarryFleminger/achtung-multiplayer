@@ -11,6 +11,7 @@
     <main class="arena-wrapper" id="arenaWrapper">
       <canvas id="trailCanvas"></canvas>
       <canvas id="headCanvas"></canvas>
+      <div id="win-popup" class="status-banner" style="display:none; position:absolute; z-index:100;"></div>
       <div class="overlay" id="lobbyOverlay">
         <div class="lobby-card">
           <div class="lobby-header">
@@ -69,7 +70,7 @@
           </section>
           <div class="players-list" id="playersList"></div>
           <div class="lobby-actions">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn" id="addPlayerBtn" type="button">+ Add Player</button><button class="btn" id="addBotBtn" type="button">🤖 Add AI Bot</button><button class="btn" id="resetDefaultsBtn" type="button">↺ Reset Defaults</button></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn" id="addPlayerBtn" type="button">+ Add Player</button><button class="btn" id="addBotBtn" type="button">🤖 Add AI Bot</button><button class="btn" id="reset-scores-btn" type="button">Reset Scores</button><button class="btn" id="resetDefaultsBtn" type="button">↺ Reset Defaults</button></div>
             <button class="btn btn-primary" id="startGameBtn" type="button">Start Match (SPACE)</button>
           </div>
         </div>
