@@ -1,5 +1,5 @@
 // ============================================================================
-// CLIENT UI: LOCK KEYBINDS TO OWNED COLOR SLOT, ROSTER & SCORE SYNC (< 90 LINES)
+// CLIENT UI: MOBILE FULLSCREEN START, KEYBIND LOCK & SCORE SYNC (< 90 LINES)
 // ============================================================================
 (function () {
   const cfg = window.ACHTUNG_CONFIG, sfx = window.soundFX, net = window.network, $ = (id) => document.getElementById(id);
@@ -62,15 +62,13 @@
   });
 
   if ($("startGameBtn")) $("startGameBtn").onclick = () => { hideWinPopup(); net.send({ type: "requestStart" }); };
+  if ($("mobile-start-btn")) $("mobile-start-btn").onclick = () => { if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch((e) => console.log(e)); hideWinPopup(); net.send({ type: "requestStart" }); };
   if ($("reset-scores-btn")) $("reset-scores-btn").onclick = () => { if (sfx) sfx.playClick(); net.send({ type: "resetScores" }); };
   if ($("lobbyMenuBtn")) $("lobbyMenuBtn").onclick = () => { hideWinPopup(); net.send({ type: "abortMatch" }); };
   if ($("muteBtn")) $("muteBtn").onclick = () => { const m = sfx.toggleMute(); $("muteBtn").textContent = m ? "🔇 Sound: OFF" : "🔊 Sound: ON"; };
-
-  net.on("assigned", () => renderRosterUI());
-  net.on("rosterSync", (msg) => { slotOwners = msg.slots || {}; renderRosterUI(); });
+  net.on("assigned", () => renderRosterUI()); net.on("rosterSync", (msg) => { slotOwners = msg.slots || {}; renderRosterUI(); });
   net.on("scoreSync", (msg) => { players.forEach((p) => { p.score = (msg.scores && msg.scores[p.id]) || 0; p.hasCrown = false; p.name = p.name.replace(/ 👑/g, ""); }); hideWinPopup(); renderRosterUI(); });
-  net.on("countdown", () => { hideWinPopup(); if (sfx) sfx.playClick(); });
-  net.on("start", () => { hideWinPopup(); if (sfx) sfx.playRoundStart(); });
+  net.on("countdown", () => { hideWinPopup(); if (sfx) sfx.playClick(); }); net.on("start", () => { hideWinPopup(); if (sfx) sfx.playRoundStart(); });
   net.on("roundEnd", (msg) => {
     if (msg.scores) players.forEach((p) => { if (typeof msg.scores[p.id] === "number") p.score = msg.scores[p.id]; });
     if (msg.matchWinner !== undefined && msg.matchWinner !== null) {
