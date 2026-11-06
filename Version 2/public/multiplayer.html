@@ -69,6 +69,7 @@
             </div>
           </section>
           <div class="players-list" id="playersList"></div>
+          <div class="presets-bar" style="margin-top:4px;"><span class="presets-label">Your Controls:</span><span>Left:</span><button class="key-btn" id="bind-left" type="button">ArrowLeft</button><span>Right:</span><button class="key-btn" id="bind-right" type="button">ArrowRight</button></div>
           <div class="lobby-actions">
             <div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn" id="addPlayerBtn" type="button">+ Add Player</button><button class="btn" id="addBotBtn" type="button">🤖 Add AI Bot</button><button class="btn" id="reset-scores-btn" type="button">Reset Scores</button><button class="btn" id="resetDefaultsBtn" type="button">↺ Reset Defaults</button></div>
             <button class="btn btn-primary" id="startGameBtn" type="button">Start Match (SPACE)</button>
@@ -79,7 +80,7 @@
     </main>
     <aside class="sidebar">
       <div class="sidebar-top">
-        <div><div class="k-goal-box"><span class="k-symbol">K</span><span class="k-target" id="goalScoreDisplay">10</span></div><div class="k-caption" style="margin-top:6px;">Points to win match</div></div>
+        <h2 style="text-align: center;">First to 10 Wins</h2>
         <div class="scoreboard-list" id="scoreboardList"></div>
         <div><div class="k-caption" style="margin-bottom:6px;">Active Power-Ups Feed</div><div class="powerup-feed" id="powerupFeed"></div></div>
       </div>

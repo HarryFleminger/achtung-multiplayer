@@ -12,8 +12,8 @@
     S.trailCtx.fillStyle = "#050507"; S.trailCtx.fillRect(0, 0, S.w, S.h); S.headCtx.clearRect(0, 0, S.w, S.h);
   }
   function renderUI() {
-    const act = players.filter((p) => p.active); goal = cfg.autoGoalScore ? Math.max(10, (Math.max(2, act.length) - 1) * 10) : Math.max(1, +$("inpCustomGoal").value || 20);
-    $("goalScoreDisplay").textContent = goal; $("playersList").innerHTML = "";
+    const act = players.filter((p) => p.active); goal = 10;
+    if ($("goalScoreDisplay")) $("goalScoreDisplay").textContent = goal; $("playersList").innerHTML = "";
     players.forEach((p, idx) => {
       const row = document.createElement("div"); row.className = "player-row" + (p.active ? " active" : "");
       const bL = bind && bind.idx === idx && bind.s === "L", bR = bind && bind.idx === idx && bind.s === "R";

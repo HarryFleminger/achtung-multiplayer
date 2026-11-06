@@ -1,19 +1,16 @@
 // ============================================================================
-// CLIENT UI: LOBBY SYNC, SCORE RESET, 10-PT WIN POPUP & CROWN UI (< 90 LINES)
+// CLIENT UI: LOBBY SYNC, KEYBIND SYNC, SCORE RESET & CROWN UI (< 90 LINES)
 // ============================================================================
 (function () {
   const cfg = window.ACHTUNG_CONFIG, sfx = window.soundFX, net = window.network, $ = (id) => document.getElementById(id);
   const renderer = new window.GameRenderer($("trailCanvas"), $("headCanvas"), cfg);
   renderer.resize(800, 600); renderer.setVisible(false);
-
   const SLOT_NAMES = ["Fred", "Greenlee", "Pinkney", "Bluebell", "Willem", "Greydon"];
   let players = JSON.parse(JSON.stringify(cfg.defaultPlayers)).map((p, i) => ({ ...p, slotName: SLOT_NAMES[i] || p.name, hasCrown: false }));
   let slotOwners = {}, bindTarget = null;
   const hideWinPopup = () => { if ($("win-popup")) $("win-popup").style.display = "none"; };
 
   function renderRosterUI() {
-    const activeCount = players.filter((p) => p.active).length;
-    if ($("goalScoreDisplay")) $("goalScoreDisplay").textContent = Math.max(10, (Math.max(2, activeCount) - 1) * 10);
     const list = $("playersList");
     if (list) {
       list.innerHTML = "";
@@ -47,13 +44,16 @@
     }
   }
 
+  window.addEventListener("keybindchange", (e) => {
+    const mine = players.find((p) => slotOwners[p.slotName] === net.clientId);
+    if (mine && e.detail) { mine.leftKey = mine.leftLabel = e.detail.left; mine.rightKey = mine.rightLabel = e.detail.right; renderRosterUI(); }
+  });
   window.addEventListener("keydown", (e) => {
-    if (e.code === "Space") hideWinPopup();
+    if (e.code === "Space" && !bindTarget) hideWinPopup();
     if (!bindTarget) return;
-    e.preventDefault();
-    const p = players[bindTarget.idx], lbl = e.code.replace("Key", "").replace("Digit", "").replace("ArrowLeft", "←").replace("ArrowRight", "→");
-    if (bindTarget.side === "left") { p.leftKey = e.code; p.leftLabel = lbl; bindTarget = { idx: bindTarget.idx, side: "right" }; }
-    else { p.rightKey = e.code; p.rightLabel = lbl; bindTarget = null; }
+    e.preventDefault(); const p = players[bindTarget.idx], k = e.key === " " ? "Space" : e.key;
+    if (bindTarget.side === "left") { p.leftKey = p.leftLabel = k; if (window.setMyKeys) window.setMyKeys(k, null); bindTarget = { idx: bindTarget.idx, side: "right" }; }
+    else { p.rightKey = p.rightLabel = k; if (window.setMyKeys) window.setMyKeys(null, k); bindTarget = null; }
     if (sfx) sfx.playClick(); renderRosterUI();
   });
 
@@ -64,17 +64,13 @@
 
   net.on("assigned", () => renderRosterUI());
   net.on("rosterSync", (msg) => { slotOwners = msg.slots || {}; renderRosterUI(); });
-  net.on("scoreSync", (msg) => {
-    players.forEach((p) => { p.score = (msg.scores && msg.scores[p.id]) || 0; p.hasCrown = false; p.name = p.name.replace(/ 👑/g, ""); });
-    hideWinPopup(); renderRosterUI();
-  });
+  net.on("scoreSync", (msg) => { players.forEach((p) => { p.score = (msg.scores && msg.scores[p.id]) || 0; p.hasCrown = false; p.name = p.name.replace(/ 👑/g, ""); }); hideWinPopup(); renderRosterUI(); });
   net.on("countdown", () => { hideWinPopup(); if (sfx) sfx.playClick(); });
   net.on("start", () => { hideWinPopup(); if (sfx) sfx.playRoundStart(); });
   net.on("roundEnd", (msg) => {
     if (msg.scores) players.forEach((p) => { if (typeof msg.scores[p.id] === "number") p.score = msg.scores[p.id]; });
     if (msg.matchWinner !== undefined && msg.matchWinner !== null) {
-      const w = players.find((p) => p.id === msg.matchWinner);
-      if (w) w.hasCrown = true;
+      const w = players.find((p) => p.id === msg.matchWinner); if (w) w.hasCrown = true;
       const pop = $("win-popup");
       if (pop) { pop.innerHTML = `<div class="banner-title">🏆 ${w ? w.name.replace(/ 👑/g, "") : "Player"} Wins the Match!</div><div class="banner-sub">Press <kbd>SPACE</kbd> for next round</div>`; pop.style.display = "block"; }
     }
