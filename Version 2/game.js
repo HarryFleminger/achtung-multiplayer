@@ -1,5 +1,5 @@
 // ============================================================================
-// CLIENT UI: LOBBY SYNC, KEYBIND SYNC, SCORE RESET & CROWN UI (< 90 LINES)
+// CLIENT UI: LOCK KEYBINDS TO OWNED COLOR SLOT, ROSTER & SCORE SYNC (< 90 LINES)
 // ============================================================================
 (function () {
   const cfg = window.ACHTUNG_CONFIG, sfx = window.soundFX, net = window.network, $ = (id) => document.getElementById(id);
@@ -11,6 +11,7 @@
   const hideWinPopup = () => { if ($("win-popup")) $("win-popup").style.display = "none"; };
 
   function renderRosterUI() {
+    if (bindTarget && slotOwners[players[bindTarget.idx].slotName] !== net.clientId) bindTarget = null;
     const list = $("playersList");
     if (list) {
       list.innerHTML = "";
@@ -18,17 +19,20 @@
         const ownerId = slotOwners[p.slotName] ?? null;
         const isMine = Boolean(net.clientId && ownerId === net.clientId), isOther = Boolean(ownerId && ownerId !== net.clientId);
         if (Object.keys(slotOwners).length > 0) p.active = Boolean(ownerId);
+        if (isMine && window.setMyKeys) window.setMyKeys(p.leftKey, p.rightKey);
         const row = document.createElement("div");
         row.className = "player-row" + (p.active ? " active" : ""); row.dataset.slot = p.slotName; row.style.opacity = isOther ? "0.45" : "1";
-        const bL = bindTarget && bindTarget.idx === idx && bindTarget.side === "left", bR = bindTarget && bindTarget.idx === idx && bindTarget.side === "right", dis = isOther ? "disabled" : "";
-        row.innerHTML = `<button type="button" class="player-toggle" ${dis}>${p.active ? "✓" : ""}</button><input type="color" class="color-swatch-input" value="${p.color}" ${dis} /><input type="text" class="player-name-input" value="${p.name}" style="color:${p.color}" maxlength="16" ${dis} /><button type="button" class="key-btn${bL ? " listening" : ""}" ${dis}>${bL ? "Press key..." : "⟲ " + p.leftLabel}</button><button type="button" class="key-btn${bR ? " listening" : ""}" ${dis}>${bR ? "Press key..." : p.rightLabel + " ⟳"}</button><button type="button" class="bot-btn${p.isBot ? " is-bot" : ""}" ${dis}>${isMine ? "👤 You" : isOther ? "🔒 Taken" : p.isBot ? "🤖 Bot" : "👤 Human"}</button>`;
+        const bL = isMine && bindTarget && bindTarget.idx === idx && bindTarget.side === "left", bR = isMine && bindTarget && bindTarget.idx === idx && bindTarget.side === "right";
+        const dis = isOther ? "disabled" : "", keyDis = isMine ? "" : "disabled";
+        row.innerHTML = `<button type="button" class="player-toggle" ${dis}>${p.active ? "✓" : ""}</button><input type="color" class="color-swatch-input" value="${p.color}" ${keyDis} /><input type="text" class="player-name-input" value="${p.name}" style="color:${p.color}" maxlength="16" ${keyDis} /><button type="button" class="key-btn${bL ? " listening" : ""}" ${keyDis}>${bL ? "Press key..." : "⟲ " + p.leftLabel}</button><button type="button" class="key-btn${bR ? " listening" : ""}" ${keyDis}>${bR ? "Press key..." : p.rightLabel + " ⟳"}</button><button type="button" class="bot-btn${p.isBot ? " is-bot" : ""}" ${keyDis}>${isMine ? "👤 You" : isOther ? "🔒 Taken" : "⚪ Free"}</button>`;
         const [tog, col, nam, lBtn, rBtn, bot] = row.children;
+        lBtn.disabled = rBtn.disabled = !isMine; lBtn.style.opacity = rBtn.style.opacity = isMine ? "1" : "0.35"; lBtn.style.cursor = rBtn.style.cursor = isMine ? "pointer" : "not-allowed";
         tog.onclick = () => { if (isOther) return; if (sfx) sfx.playClick(); if (net.connected) net.send({ type: "claimSlot", slot: p.slotName }); else { p.active = !p.active; renderRosterUI(); } };
-        col.oninput = (e) => { p.color = e.target.value; nam.style.color = p.color; renderRosterUI(); };
-        nam.oninput = (e) => { p.name = e.target.value.replace(/ 👑/g, ""); };
-        lBtn.onclick = () => { if (!isOther) { bindTarget = { idx, side: "left" }; renderRosterUI(); } };
-        rBtn.onclick = () => { if (!isOther) { bindTarget = { idx, side: "right" }; renderRosterUI(); } };
-        bot.onclick = () => { if (!isOther) { p.isBot = !p.isBot; if (sfx) sfx.playClick(); renderRosterUI(); } };
+        col.oninput = (e) => { if (isMine) { p.color = e.target.value; nam.style.color = p.color; renderRosterUI(); } };
+        nam.oninput = (e) => { if (isMine) p.name = e.target.value.replace(/ 👑/g, ""); };
+        lBtn.onclick = () => { if (isMine) { bindTarget = { idx, side: "left" }; renderRosterUI(); } };
+        rBtn.onclick = () => { if (isMine) { bindTarget = { idx, side: "right" }; renderRosterUI(); } };
+        bot.onclick = () => { if (isMine) { p.isBot = !p.isBot; if (sfx) sfx.playClick(); renderRosterUI(); } };
         list.appendChild(row);
       });
     }
