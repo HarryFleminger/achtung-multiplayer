@@ -38,7 +38,8 @@ function startSynchronizedCountdown() {
     if (--count > 0) { broadcast({ type: "countdown", count, players: gameEngine.getSnapshot() }); return; }
     clearCountdown(); broadcast({ type: "start" });
     gameEngine.startLoop(roster, (res) => {
-      broadcast({ type: "tick", players: res.players, activePowerUps: res.activePowerUps, clearBoard: Boolean(res.clearBoard) });
+      const minPlayers = res.players.map((p) => ({ id: p.id, x: p.x, y: p.y, gap: p.gap, alive: p.alive, lineWidth: p.lineWidth, isGhost: p.isGhost, isWrap: p.isWrap, isReverse: p.isReverse, isRightAngle: p.isRightAngle, isWobble: p.isWobble }));
+      broadcast({ type: "tick", players: minPlayers, activePowerUps: res.activePowerUps, clearBoard: Boolean(res.clearBoard) });
       if (res.roundOver) {
         let matchWinner = null;
         roomManager.getRoster().forEach((p) => {
