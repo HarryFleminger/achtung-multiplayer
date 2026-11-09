@@ -57,7 +57,7 @@ class ServerGameEngine {
       t.radius = pu.effect === "thick" ? this.baseRadius * 2 : pu.effect === "thin" ? this.baseRadius * 0.55 : t.radius;
     });
   }
-  startLoop(roster, onTick) { if (!this.players.length) this.initMatch(roster); this.stopLoop(); this.intervalId = setInterval(() => { if (onTick) onTick(this.step()); }, 1000 / 30); }
+  startLoop(roster, onTick) { if (!this.players.length) this.initMatch(roster); this.stopLoop(); this.intervalId = setInterval(() => { if (onTick) onTick(this.step()); }, 16.6); }
   stopLoop() { if (this.intervalId) clearInterval(this.intervalId); this.intervalId = null; }
   step() {
     const grace = ++this.tickCount <= 45, canWrapGlobal = Boolean(this.settings.wrapWalls);
